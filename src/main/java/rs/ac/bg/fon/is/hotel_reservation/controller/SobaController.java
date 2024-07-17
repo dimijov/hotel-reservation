@@ -1,35 +1,27 @@
 package rs.ac.bg.fon.is.hotel_reservation.controller;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import rs.ac.bg.fon.is.hotel_reservation.model.Soba;
+import rs.ac.bg.fon.is.hotel_reservation.dto.SobaDTO;
 import rs.ac.bg.fon.is.hotel_reservation.service.SobaService;
+
 
 import java.util.List;
 
 @RestController
-//@CrossOrigin(origins = "http://localhost:3000") // Prilagodi port React aplikacije
 @RequestMapping("/api/sobe")
 public class SobaController {
+
     @Autowired
     private SobaService sobaService;
 
     @GetMapping
-    public List<Soba> getAllSobe() {
-        return sobaService.getAllSobe();
+    public ResponseEntity<List<SobaDTO>> getAllAvailableRooms() {
+        return ResponseEntity.ok(sobaService.getAllAvailableRooms());
     }
 
     @GetMapping("/{id}")
-    public Soba getSobaById(@PathVariable Long id) {
-        return sobaService.getSobaById(id);
-    }
-
-    @PostMapping
-    public Soba saveSoba(@RequestBody Soba soba) {
-        return sobaService.saveSoba(soba);
-    }
-
-    @DeleteMapping("/{id}")
-    public void deleteSoba(@PathVariable Long id) {
-        sobaService.deleteSoba(id);
+    public ResponseEntity<SobaDTO> getRoomById(@PathVariable Long id) {
+        return ResponseEntity.ok(sobaService.getRoomById(id));
     }
 }

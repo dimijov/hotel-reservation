@@ -1,104 +1,35 @@
 package rs.ac.bg.fon.is.hotel_reservation.model;
 
-import com.fasterxml.jackson.annotation.JsonBackReference;
-import com.fasterxml.jackson.annotation.JsonManagedReference;
-import jakarta.persistence.*;
+import lombok.Data;
 
-import java.time.LocalDate;
+import jakarta.persistence.*;
+import java.util.Date;
 import java.util.List;
 
 @Entity
+@Data
 public class Rezervacija {
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     private String email;
-    private LocalDate datumOd;
-    private LocalDate datumDo;
-    private String token;
+    private Date datumPocetka;
+    private Date datumZavrsetka;
     private String promoKod;
-    private double ukupnaCena;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne
     @JoinColumn(name = "soba_id")
-    @JsonBackReference
     private Soba soba;
 
-    @OneToMany(mappedBy = "rezervacija", cascade = CascadeType.ALL)
-    @JsonManagedReference
+    @ManyToMany
+    @JoinTable(
+            name = "rezervacija_gost",
+            joinColumns = @JoinColumn(name = "rezervacija_id"),
+            inverseJoinColumns = @JoinColumn(name = "gost_id")
+    )
     private List<Gost> gosti;
 
-    public Long getId() {
-        return id;
-    }
-
-    public void setId(Long id) {
-        this.id = id;
-    }
-
-    public String getEmail() {
-        return email;
-    }
-
-    public void setEmail(String email) {
-        this.email = email;
-    }
-
-    public LocalDate getDatumOd() {
-        return datumOd;
-    }
-
-    public void setDatumOd(LocalDate datumOd) {
-        this.datumOd = datumOd;
-    }
-
-    public LocalDate getDatumDo() {
-        return datumDo;
-    }
-
-    public void setDatumDo(LocalDate datumDo) {
-        this.datumDo = datumDo;
-    }
-
-    public String getToken() {
-        return token;
-    }
-
-    public void setToken(String token) {
-        this.token = token;
-    }
-
-    public String getPromoKod() {
-        return promoKod;
-    }
-
-    public void setPromoKod(String promoKod) {
-        this.promoKod = promoKod;
-    }
-
-    public double getUkupnaCena() {
-        return ukupnaCena;
-    }
-
-    public void setUkupnaCena(double ukupnaCena) {
-        this.ukupnaCena = ukupnaCena;
-    }
-
-    public Soba getSoba() {
-        return soba;
-    }
-
-    public void setSoba(Soba soba) {
-        this.soba = soba;
-    }
-
-    public List<Gost> getGosti() {
-        return gosti;
-    }
-
-    public void setGosti(List<Gost> gosti) {
-        this.gosti = gosti;
-    }
+    private double ukupnaCena;
+    private boolean aktivna;
 }
