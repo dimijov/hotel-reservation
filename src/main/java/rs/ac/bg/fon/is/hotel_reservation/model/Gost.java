@@ -13,4 +13,8 @@ public class Gost {
 
     private String ime;
     private String prezime;
+
+    @ManyToOne
+    @JoinColumn(name = "rezervacija_id")
+    private Rezervacija rezervacija;
 }

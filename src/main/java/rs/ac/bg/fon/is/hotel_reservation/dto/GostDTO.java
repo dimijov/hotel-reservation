@@ -7,4 +7,5 @@ public class GostDTO {
     private Long id;
     private String ime;
     private String prezime;
+    private Long rezervacijaId;
 }
