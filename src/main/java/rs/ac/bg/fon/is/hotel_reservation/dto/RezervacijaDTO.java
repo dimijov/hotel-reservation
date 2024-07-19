@@ -14,6 +14,7 @@ public class RezervacijaDTO {
     private LocalDate datumZavrsetka;
     private String promoKod;
     private Long sobaId;
+    private String token;
     private List<GostDTO> gosti;
     private double ukupnaCena;
     private boolean aktivna;

@@ -11,7 +11,6 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/gosti")
-
 public class GostController {
 
     @Autowired

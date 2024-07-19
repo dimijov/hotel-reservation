@@ -1,5 +1,6 @@
 package rs.ac.bg.fon.is.hotel_reservation.service.impl;
 
+import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import rs.ac.bg.fon.is.hotel_reservation.dto.GostDTO;
@@ -21,38 +22,30 @@ public class GostServiceImpl implements GostService {
     @Autowired
     private RezervacijaRepository rezervacijaRepository;
 
+    @Autowired
+    private ModelMapper modelMapper;
+
     @Override
     public GostDTO createGuest(GostDTO gostDTO) {
         Rezervacija rezervacija = rezervacijaRepository.findById(gostDTO.getRezervacijaId())
                 .orElseThrow(() -> new RuntimeException("Rezervacija ne postoji"));
 
-        Gost gost = new Gost();
-        gost.setIme(gostDTO.getIme());
-        gost.setPrezime(gostDTO.getPrezime());
+        Gost gost = modelMapper.map(gostDTO, Gost.class);
         gost.setRezervacija(rezervacija);
 
         Gost savedGost = gostRepository.save(gost);
-        return convertToDTO(savedGost);
+        return modelMapper.map(savedGost, GostDTO.class);
     }
 
     @Override
     public GostDTO getGuestById(Long id) {
         Gost gost = gostRepository.findById(id).orElseThrow(() -> new RuntimeException("Gost nije pronađen"));
-        return convertToDTO(gost);
+        return modelMapper.map(gost, GostDTO.class);
     }
 
     @Override
     public List<GostDTO> getAllGuests() {
         List<Gost> gosti = gostRepository.findAll();
-        return gosti.stream().map(this::convertToDTO).collect(Collectors.toList());
-    }
-
-    private GostDTO convertToDTO(Gost gost) {
-        GostDTO gostDTO = new GostDTO();
-        gostDTO.setId(gost.getId());
-        gostDTO.setIme(gost.getIme());
-        gostDTO.setPrezime(gost.getPrezime());
-        gostDTO.setRezervacijaId(gost.getRezervacija().getId());
-        return gostDTO;
+        return gosti.stream().map(gost -> modelMapper.map(gost, GostDTO.class)).collect(Collectors.toList());
     }
 }

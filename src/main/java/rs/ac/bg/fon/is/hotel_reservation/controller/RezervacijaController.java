@@ -1,4 +1,5 @@
 package rs.ac.bg.fon.is.hotel_reservation.controller;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -14,12 +15,23 @@ public class RezervacijaController {
 
     @PostMapping
     public ResponseEntity<RezervacijaDTO> createReservation(@RequestBody RezervacijaDTO rezervacijaDTO) {
-        return ResponseEntity.ok(rezervacijaService.createReservation(rezervacijaDTO));
+        RezervacijaDTO createdReservation = rezervacijaService.createReservation(rezervacijaDTO);
+        return ResponseEntity.ok(createdReservation);
     }
 
+  /*
     @GetMapping("/{id}")
     public ResponseEntity<RezervacijaDTO> getReservationById(@PathVariable Long id) {
-        return ResponseEntity.ok(rezervacijaService.getReservationById(id));
+        RezervacijaDTO reservation = rezervacijaService.getReservationById(id);
+        return ResponseEntity.ok(reservation);
+    }
+  */
+
+    @GetMapping
+    public ResponseEntity<RezervacijaDTO> getReservationByEmailAndToken(
+            @RequestParam String email, @RequestParam String token) {
+        RezervacijaDTO reservation = rezervacijaService.getReservationByEmailAndToken(email, token);
+        return ResponseEntity.ok(reservation);
     }
 
     @DeleteMapping("/{id}")

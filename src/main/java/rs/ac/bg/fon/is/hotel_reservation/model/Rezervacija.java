@@ -18,6 +18,7 @@ public class Rezervacija {
     private LocalDate datumPocetka;
     private LocalDate datumZavrsetka;
     private String promoKod;
+    private String token;
 
     @ManyToOne
     @JoinColumn(name = "soba_id")

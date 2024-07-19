@@ -1,5 +1,6 @@
 package rs.ac.bg.fon.is.hotel_reservation.service.impl;
 
+import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import rs.ac.bg.fon.is.hotel_reservation.dto.SobaDTO;
@@ -16,26 +17,18 @@ public class SobaServiceImpl implements SobaService {
     @Autowired
     private SobaRepository sobaRepository;
 
+    @Autowired
+    private ModelMapper modelMapper;
+
     @Override
     public List<SobaDTO> getAllAvailableRooms() {
         List<Soba> sobe = sobaRepository.findAll();
-        return sobe.stream().map(this::convertToDTO).collect(Collectors.toList());
+        return sobe.stream().map(soba -> modelMapper.map(soba, SobaDTO.class)).collect(Collectors.toList());
     }
 
     @Override
     public SobaDTO getRoomById(Long id) {
         Soba soba = sobaRepository.findById(id).orElseThrow(() -> new RuntimeException("Soba not found"));
-        return convertToDTO(soba);
-    }
-
-    private SobaDTO convertToDTO(Soba soba) {
-        SobaDTO sobaDTO = new SobaDTO();
-        sobaDTO.setId(soba.getId());
-        sobaDTO.setNaziv(soba.getNaziv());
-        sobaDTO.setKapacitet(soba.getKapacitet());
-        sobaDTO.setOpis(soba.getOpis());
-        sobaDTO.setCenaPoNoci(soba.getCenaPoNoci());
-        sobaDTO.setSlikaUrl(soba.getSlikaUrl());
-        return sobaDTO;
+        return modelMapper.map(soba, SobaDTO.class);
     }
 }
