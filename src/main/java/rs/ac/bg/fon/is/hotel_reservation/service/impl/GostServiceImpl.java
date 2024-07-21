@@ -6,8 +6,8 @@ import org.springframework.stereotype.Service;
 import rs.ac.bg.fon.is.hotel_reservation.dto.GostDTO;
 import rs.ac.bg.fon.is.hotel_reservation.model.Gost;
 import rs.ac.bg.fon.is.hotel_reservation.model.Rezervacija;
-import rs.ac.bg.fon.is.hotel_reservation.repository.GostRepository;
-import rs.ac.bg.fon.is.hotel_reservation.repository.RezervacijaRepository;
+import rs.ac.bg.fon.is.hotel_reservation.dao.GostRepository;
+import rs.ac.bg.fon.is.hotel_reservation.dao.RezervacijaRepository;
 import rs.ac.bg.fon.is.hotel_reservation.service.GostService;
 
 import java.util.List;

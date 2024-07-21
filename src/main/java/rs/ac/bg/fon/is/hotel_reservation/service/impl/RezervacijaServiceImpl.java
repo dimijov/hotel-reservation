@@ -3,20 +3,18 @@ package rs.ac.bg.fon.is.hotel_reservation.service.impl;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import rs.ac.bg.fon.is.hotel_reservation.dto.GostDTO;
 import rs.ac.bg.fon.is.hotel_reservation.dto.RezervacijaDTO;
+import rs.ac.bg.fon.is.hotel_reservation.dto.SobaDTO;
 import rs.ac.bg.fon.is.hotel_reservation.model.Gost;
 import rs.ac.bg.fon.is.hotel_reservation.model.Rezervacija;
 import rs.ac.bg.fon.is.hotel_reservation.model.Soba;
-import rs.ac.bg.fon.is.hotel_reservation.repository.GostRepository;
-import rs.ac.bg.fon.is.hotel_reservation.repository.RezervacijaRepository;
-import rs.ac.bg.fon.is.hotel_reservation.repository.SobaRepository;
+import rs.ac.bg.fon.is.hotel_reservation.dao.GostRepository;
+import rs.ac.bg.fon.is.hotel_reservation.dao.RezervacijaRepository;
+import rs.ac.bg.fon.is.hotel_reservation.dao.SobaRepository;
 import rs.ac.bg.fon.is.hotel_reservation.service.RezervacijaService;
 
 import java.security.SecureRandom;
 import java.util.Base64;
-import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 public class RezervacijaServiceImpl implements RezervacijaService {
@@ -35,13 +33,11 @@ public class RezervacijaServiceImpl implements RezervacijaService {
 
     @Override
     public RezervacijaDTO createReservation(RezervacijaDTO rezervacijaDTO) {
-        // Validacija podataka
         if (rezervacijaDTO.getDatumPocetka().isAfter(rezervacijaDTO.getDatumZavrsetka())) {
             throw new RuntimeException("Datum početka rezervacije mora biti pre datuma završetka.");
         }
 
-        // Provera dostupnosti sobe
-        Soba soba = sobaRepository.findById(rezervacijaDTO.getSobaId())
+        Soba soba = sobaRepository.findById(rezervacijaDTO.getSoba().getId())
                 .orElseThrow(() -> new RuntimeException("Soba not found"));
 
         boolean isAvailable = rezervacijaRepository.findBySobaAndDatumPocetkaLessThanEqualAndDatumZavrsetkaGreaterThanEqual(
@@ -51,28 +47,33 @@ public class RezervacijaServiceImpl implements RezervacijaService {
             throw new RuntimeException("Soba nije dostupna u zadatom periodu.");
         }
 
-        // Provera promo koda i email-a
         if (rezervacijaDTO.getPromoKod() != null && !rezervacijaDTO.getPromoKod().isEmpty()) {
             Rezervacija existingRezervacija = rezervacijaRepository.findByPromoKodAndAktivna(rezervacijaDTO.getPromoKod(), true);
             if (existingRezervacija != null) {
                 if (existingRezervacija.getEmail().equals(rezervacijaDTO.getEmail())) {
                     throw new RuntimeException("Promo kod ne može biti korišćen za isti email.");
                 } else {
-                    // Postavljanje aktivne rezervacije na false
                     existingRezervacija.setAktivna(false);
                     rezervacijaRepository.save(existingRezervacija);
                 }
             }
         }
 
-        // Kreiranje rezervacije
         Rezervacija rezervacija = modelMapper.map(rezervacijaDTO, Rezervacija.class);
         rezervacija.setSoba(soba);
         rezervacija.setToken(generateRandomToken());
         rezervacija.setAktivna(true);
 
         Rezervacija savedRezervacija = rezervacijaRepository.save(rezervacija);
-        return modelMapper.map(savedRezervacija, RezervacijaDTO.class);
+
+        for (Gost gost : savedRezervacija.getGosti()) {
+            gost.setRezervacija(savedRezervacija);
+            gostRepository.save(gost);
+        }
+
+        RezervacijaDTO responseDTO = modelMapper.map(savedRezervacija, RezervacijaDTO.class);
+        responseDTO.setSoba(modelMapper.map(savedRezervacija.getSoba(), SobaDTO.class));
+        return responseDTO;
     }
 
     private String generateRandomToken() {
@@ -86,7 +87,10 @@ public class RezervacijaServiceImpl implements RezervacijaService {
     public RezervacijaDTO getReservationByEmailAndToken(String email, String token) {
         Rezervacija rezervacija = rezervacijaRepository.findByEmailAndToken(email, token)
                 .orElseThrow(() -> new RuntimeException("Rezervacija not found"));
-        return modelMapper.map(rezervacija, RezervacijaDTO.class);
+        RezervacijaDTO rezervacijaDTO = modelMapper.map(rezervacija, RezervacijaDTO.class);
+        rezervacijaDTO.setSoba(modelMapper.map(rezervacija.getSoba(), SobaDTO.class));
+        rezervacijaDTO.setToken(null);
+        return rezervacijaDTO;
     }
 
     @Override
@@ -95,3 +99,4 @@ public class RezervacijaServiceImpl implements RezervacijaService {
         rezervacijaRepository.delete(rezervacija);
     }
 }
+

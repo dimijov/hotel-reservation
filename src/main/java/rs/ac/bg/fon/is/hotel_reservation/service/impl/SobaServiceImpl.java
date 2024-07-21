@@ -5,7 +5,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import rs.ac.bg.fon.is.hotel_reservation.dto.SobaDTO;
 import rs.ac.bg.fon.is.hotel_reservation.model.Soba;
-import rs.ac.bg.fon.is.hotel_reservation.repository.SobaRepository;
+import rs.ac.bg.fon.is.hotel_reservation.dao.SobaRepository;
 import rs.ac.bg.fon.is.hotel_reservation.service.SobaService;
 
 import java.util.List;
