@@ -13,8 +13,7 @@ import rs.ac.bg.fon.is.hotel_reservation.dao.RezervacijaRepository;
 import rs.ac.bg.fon.is.hotel_reservation.dao.SobaRepository;
 import rs.ac.bg.fon.is.hotel_reservation.service.RezervacijaService;
 
-import java.security.SecureRandom;
-import java.util.Base64;
+import java.util.UUID;
 
 @Service
 public class RezervacijaServiceImpl implements RezervacijaService {
@@ -47,22 +46,22 @@ public class RezervacijaServiceImpl implements RezervacijaService {
             throw new RuntimeException("Soba nije dostupna u zadatom periodu.");
         }
 
+        Rezervacija rezervacija = modelMapper.map(rezervacijaDTO, Rezervacija.class);
+        rezervacija.setSoba(soba);
+        rezervacija.setToken(UUID.randomUUID().toString());
+
         if (rezervacijaDTO.getPromoKod() != null && !rezervacijaDTO.getPromoKod().isEmpty()) {
             Rezervacija existingRezervacija = rezervacijaRepository.findByPromoKodAndAktivna(rezervacijaDTO.getPromoKod(), true);
             if (existingRezervacija != null) {
-                if (existingRezervacija.getEmail().equals(rezervacijaDTO.getEmail())) {
-                    throw new RuntimeException("Promo kod ne može biti korišćen za isti email.");
-                } else {
-                    existingRezervacija.setAktivna(false);
-                    rezervacijaRepository.save(existingRezervacija);
-                }
+                rezervacija.setPopust(existingRezervacija.getPopust());
+            } else {
+                throw new RuntimeException("Promo kod nije aktivan ili ne postoji.");
             }
+        } else {
+            rezervacija.setPopust(0); // No discount if no promo code is provided
         }
 
-        Rezervacija rezervacija = modelMapper.map(rezervacijaDTO, Rezervacija.class);
-        rezervacija.setSoba(soba);
-        rezervacija.setToken(generateRandomToken());
-        rezervacija.setAktivna(true);
+        rezervacija.setUkupnaCena(calculateDiscountedPrice(rezervacijaDTO.getUkupnaCena(), rezervacija.getPopust()));
 
         Rezervacija savedRezervacija = rezervacijaRepository.save(rezervacija);
 
@@ -76,11 +75,8 @@ public class RezervacijaServiceImpl implements RezervacijaService {
         return responseDTO;
     }
 
-    private String generateRandomToken() {
-        SecureRandom secureRandom = new SecureRandom();
-        byte[] tokenBytes = new byte[32];
-        secureRandom.nextBytes(tokenBytes);
-        return Base64.getUrlEncoder().withoutPadding().encodeToString(tokenBytes);
+    private double calculateDiscountedPrice(double originalPrice, double discountPercentage) {
+        return originalPrice - (originalPrice * (discountPercentage / 100));
     }
 
     @Override
@@ -92,6 +88,7 @@ public class RezervacijaServiceImpl implements RezervacijaService {
         rezervacijaDTO.setToken(null);
         return rezervacijaDTO;
     }
+
 
     @Override
     public void cancelReservation(Long id) {

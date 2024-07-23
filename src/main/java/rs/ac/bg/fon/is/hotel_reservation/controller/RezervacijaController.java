@@ -19,14 +19,6 @@ public class RezervacijaController {
         return ResponseEntity.ok(createdReservation);
     }
 
-    /*
-    @GetMapping("/{id}")
-    public ResponseEntity<RezervacijaDTO> getReservationById(@PathVariable Long id) {
-        RezervacijaDTO reservation = rezervacijaService.getReservationById(id);
-        return ResponseEntity.ok(reservation);
-    }
-    */
-
     @GetMapping
     public ResponseEntity<RezervacijaDTO> getReservationByEmailAndToken(
             @RequestParam String email, @RequestParam String token) {
