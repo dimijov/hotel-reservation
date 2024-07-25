@@ -4,6 +4,6 @@ import rs.ac.bg.fon.is.hotel_reservation.dto.RezervacijaDTO;
 
 public interface RezervacijaService {
     RezervacijaDTO createReservation(RezervacijaDTO rezervacijaDTO);
-    void cancelReservation(Long id);
+    String cancelReservation(Long id);
     RezervacijaDTO getReservationByEmailAndToken(String email, String token);
 }

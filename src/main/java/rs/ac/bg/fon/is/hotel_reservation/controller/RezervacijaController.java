@@ -30,8 +30,8 @@ public class RezervacijaController {
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> cancelReservation(@PathVariable Long id) {
-        rezervacijaService.cancelReservation(id);
-        return ResponseEntity.noContent().build();
+    public ResponseEntity<String> cancelReservation(@PathVariable Long id) {
+        String message = rezervacijaService.cancelReservation(id);
+        return ResponseEntity.ok(message);
     }
 }

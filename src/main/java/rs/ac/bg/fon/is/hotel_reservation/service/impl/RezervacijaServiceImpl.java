@@ -11,11 +11,11 @@ import rs.ac.bg.fon.is.hotel_reservation.exception.NotFoundException;
 import rs.ac.bg.fon.is.hotel_reservation.model.Gost;
 import rs.ac.bg.fon.is.hotel_reservation.model.Rezervacija;
 import rs.ac.bg.fon.is.hotel_reservation.model.Soba;
-import rs.ac.bg.fon.is.hotel_reservation.dao.GostRepository;
 import rs.ac.bg.fon.is.hotel_reservation.dao.RezervacijaRepository;
 import rs.ac.bg.fon.is.hotel_reservation.dao.SobaRepository;
 import rs.ac.bg.fon.is.hotel_reservation.service.RezervacijaService;
 
+import java.util.List;
 import java.util.Random;
 import java.util.UUID;
 
@@ -29,63 +29,25 @@ public class RezervacijaServiceImpl implements RezervacijaService {
     private SobaRepository sobaRepository;
 
     @Autowired
-    private GostRepository gostRepository;
-
-    @Autowired
     private ModelMapper modelMapper;
 
     @Override
     @Transactional
     public RezervacijaDTO createReservation(RezervacijaDTO rezervacijaDTO) {
-        if (rezervacijaDTO.getDatumPocetka().isAfter(rezervacijaDTO.getDatumZavrsetka())) {
-            throw new BadRequestException("Datum početka rezervacije mora biti pre datuma završetka.");
-        }
-
-        Soba soba = sobaRepository.findById(rezervacijaDTO.getSoba().getId())
-                .orElseThrow(() -> new NotFoundException("Soba not found"));
-
-        boolean isAvailable = rezervacijaRepository.findBySobaAndDatumPocetkaLessThanEqualAndDatumZavrsetkaGreaterThanEqual(
-                soba, rezervacijaDTO.getDatumZavrsetka(), rezervacijaDTO.getDatumPocetka()).isEmpty();
-
-        if (!isAvailable) {
-            throw new BadRequestException("Soba nije dostupna u zadatom periodu.");
-        }
+        validateReservationDates(rezervacijaDTO);
+        Soba soba = findSoba(rezervacijaDTO.getSoba().getId());
+        checkAvailability(soba, rezervacijaDTO);
 
         Rezervacija rezervacija = modelMapper.map(rezervacijaDTO, Rezervacija.class);
         rezervacija.setSoba(soba);
+        processPromoKod(rezervacija);
 
-
-        if (rezervacijaDTO.getPromoKod() != null && !rezervacijaDTO.getPromoKod().isEmpty()) {
-            Rezervacija existingRezervacija = rezervacijaRepository.findByPromoKodAndAktivna(rezervacijaDTO.getPromoKod(), true);
-            if (existingRezervacija != null) {
-                rezervacija.setUkupnaCena(calculateDiscountedPrice(rezervacija.getSoba().getCenaPoNoci(),existingRezervacija.getPopust()));
-                existingRezervacija.setAktivna(false);
-                rezervacijaRepository.save(existingRezervacija);
-                rezervacija.setAktivna(true);
-            } else {
-                throw new BadRequestException("Promo kod nije aktivan ili ne postoji.");
-            }
-        } else {
-            rezervacija.setPopust(0); // No discount if no promo code is provided
-        }
-
-        if(!rezervacija.isAktivna()) {
-            rezervacija.setUkupnaCena(calculateDiscountedPrice(rezervacija.getSoba().getCenaPoNoci(),rezervacija.getPopust()));
-            rezervacija.setAktivna(true);
-        }
-
-        rezervacija.setToken(UUID.randomUUID().toString());
-        rezervacija.setPopust(generateRandomPopust());
-        rezervacija.setPromoKod(generatePromoKod());
-
-        for (Gost gost : rezervacija.getGosti()) {
-            gost.setRezervacija(rezervacija);
-        }
+        setReservationParameters(rezervacija);
+        rezervacija.setGosti(setGuestsReservation(rezervacija));
 
         Rezervacija savedRezervacija = rezervacijaRepository.save(rezervacija);
 
-        RezervacijaDTO responseDTO = modelMapper.map(savedRezervacija, RezervacijaDTO.class);
-        return responseDTO;
+        return modelMapper.map(savedRezervacija, RezervacijaDTO.class);
     }
 
     @Override
@@ -101,11 +63,63 @@ public class RezervacijaServiceImpl implements RezervacijaService {
 
     @Override
     @Transactional
-    public void cancelReservation(Long id) {
+    public String cancelReservation(Long id) {
         Rezervacija rezervacija = rezervacijaRepository.findById(id).orElseThrow(() -> new NotFoundException("Rezervacija not found"));
         rezervacijaRepository.delete(rezervacija);
+        return "Rezervacija je uspešno otkazana";
     }
 
+    private void validateReservationDates(RezervacijaDTO rezervacijaDTO) {
+        if (rezervacijaDTO.getDatumPocetka().isAfter(rezervacijaDTO.getDatumZavrsetka())) {
+            throw new BadRequestException("Datum početka rezervacije mora biti pre datuma završetka.");
+        }
+    }
+
+    private Soba findSoba(Long id) {
+        return sobaRepository.findById(id)
+                .orElseThrow(() -> new NotFoundException("Soba not found"));
+    }
+
+    private void checkAvailability(Soba soba, RezervacijaDTO rezervacijaDTO) {
+        boolean isAvailable = rezervacijaRepository.findBySobaAndDatumPocetkaLessThanEqualAndDatumZavrsetkaGreaterThanEqual(
+                soba, rezervacijaDTO.getDatumZavrsetka(), rezervacijaDTO.getDatumPocetka()).isEmpty();
+        if (!isAvailable) {
+            throw new BadRequestException("Soba nije dostupna u zadatom periodu.");
+        }
+    }
+
+    private void processPromoKod(Rezervacija rezervacija) {
+        if (rezervacija.getPromoKod() != null && !rezervacija.getPromoKod().isEmpty()) {
+            Rezervacija existingRezervacija = rezervacijaRepository.findByPromoKodAndAktivna(rezervacija.getPromoKod(), true);
+            if (existingRezervacija != null) {
+                rezervacija.setUkupnaCena(calculateDiscountedPrice(rezervacija.getSoba().getCenaPoNoci(), existingRezervacija.getPopust()));
+                existingRezervacija.setAktivna(false);
+                rezervacijaRepository.save(existingRezervacija);
+                rezervacija.setAktivna(true);
+            } else {
+                throw new BadRequestException("Promo kod nije aktivan ili ne postoji.");
+            }
+        } else {
+            rezervacija.setPopust(0); // No discount if no promo code is provided
+        }
+    }
+
+    private void setReservationParameters(Rezervacija rezervacija) {
+        if (!rezervacija.isAktivna()) {
+            rezervacija.setUkupnaCena(calculateDiscountedPrice(rezervacija.getSoba().getCenaPoNoci(), rezervacija.getPopust()));
+            rezervacija.setAktivna(true);
+        }
+        rezervacija.setToken(UUID.randomUUID().toString());
+        rezervacija.setPopust(generateRandomPopust());
+        rezervacija.setPromoKod(generatePromoKod());
+    }
+
+    private List<Gost> setGuestsReservation(Rezervacija rezervacija) {
+        for (Gost gost : rezervacija.getGosti()) {
+            gost.setRezervacija(rezervacija);
+        }
+        return rezervacija.getGosti();
+    }
 
     private double calculateDiscountedPrice(double originalPrice, double discountPercentage) {
         return originalPrice - (originalPrice * (discountPercentage / 100));
