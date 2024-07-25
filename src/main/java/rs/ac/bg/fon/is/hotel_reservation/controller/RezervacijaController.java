@@ -1,20 +1,23 @@
 package rs.ac.bg.fon.is.hotel_reservation.controller;
 
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import rs.ac.bg.fon.is.hotel_reservation.dto.RezervacijaDTO;
 import rs.ac.bg.fon.is.hotel_reservation.service.RezervacijaService;
 
 @RestController
 @RequestMapping("/api/rezervacije")
+@Validated
 public class RezervacijaController {
 
     @Autowired
     private RezervacijaService rezervacijaService;
 
     @PostMapping
-    public ResponseEntity<RezervacijaDTO> createReservation(@RequestBody RezervacijaDTO rezervacijaDTO) {
+    public ResponseEntity<RezervacijaDTO> createReservation(@Valid @RequestBody RezervacijaDTO rezervacijaDTO) {
         RezervacijaDTO createdReservation = rezervacijaService.createReservation(rezervacijaDTO);
         return ResponseEntity.ok(createdReservation);
     }

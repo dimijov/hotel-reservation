@@ -32,25 +32,5 @@ public class Rezervacija {
     private boolean aktivna;
     private double popust;
 
-    public Rezervacija() {
-        this.promoKod = generatePromoKod();
-        this.aktivna = true;
-        this.popust = generateRandomPopust(); // Initialize with a random discount
-    }
-
-    private String generatePromoKod() {
-        String characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-        Random random = new Random();
-        StringBuilder promoKod = new StringBuilder();
-        for (int i = 0; i < 7; i++) {
-            promoKod.append(characters.charAt(random.nextInt(characters.length())));
-        }
-        return promoKod.toString();
-    }
-
-    private double generateRandomPopust() {
-        int[] possiblePopusti = {5, 10, 15, 20};
-        return possiblePopusti[new Random().nextInt(possiblePopusti.length)];
-    }
 }
 

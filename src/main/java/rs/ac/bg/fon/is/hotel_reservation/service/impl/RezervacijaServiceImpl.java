@@ -3,8 +3,11 @@ package rs.ac.bg.fon.is.hotel_reservation.service.impl;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import rs.ac.bg.fon.is.hotel_reservation.dto.RezervacijaDTO;
 import rs.ac.bg.fon.is.hotel_reservation.dto.SobaDTO;
+import rs.ac.bg.fon.is.hotel_reservation.exception.BadRequestException;
+import rs.ac.bg.fon.is.hotel_reservation.exception.NotFoundException;
 import rs.ac.bg.fon.is.hotel_reservation.model.Gost;
 import rs.ac.bg.fon.is.hotel_reservation.model.Rezervacija;
 import rs.ac.bg.fon.is.hotel_reservation.model.Soba;
@@ -13,6 +16,7 @@ import rs.ac.bg.fon.is.hotel_reservation.dao.RezervacijaRepository;
 import rs.ac.bg.fon.is.hotel_reservation.dao.SobaRepository;
 import rs.ac.bg.fon.is.hotel_reservation.service.RezervacijaService;
 
+import java.util.Random;
 import java.util.UUID;
 
 @Service
@@ -31,69 +35,94 @@ public class RezervacijaServiceImpl implements RezervacijaService {
     private ModelMapper modelMapper;
 
     @Override
+    @Transactional
     public RezervacijaDTO createReservation(RezervacijaDTO rezervacijaDTO) {
         if (rezervacijaDTO.getDatumPocetka().isAfter(rezervacijaDTO.getDatumZavrsetka())) {
-            throw new RuntimeException("Datum početka rezervacije mora biti pre datuma završetka.");
+            throw new BadRequestException("Datum početka rezervacije mora biti pre datuma završetka.");
         }
 
         Soba soba = sobaRepository.findById(rezervacijaDTO.getSoba().getId())
-                .orElseThrow(() -> new RuntimeException("Soba not found"));
+                .orElseThrow(() -> new NotFoundException("Soba not found"));
 
         boolean isAvailable = rezervacijaRepository.findBySobaAndDatumPocetkaLessThanEqualAndDatumZavrsetkaGreaterThanEqual(
                 soba, rezervacijaDTO.getDatumZavrsetka(), rezervacijaDTO.getDatumPocetka()).isEmpty();
 
         if (!isAvailable) {
-            throw new RuntimeException("Soba nije dostupna u zadatom periodu.");
+            throw new BadRequestException("Soba nije dostupna u zadatom periodu.");
         }
 
         Rezervacija rezervacija = modelMapper.map(rezervacijaDTO, Rezervacija.class);
         rezervacija.setSoba(soba);
-        rezervacija.setToken(UUID.randomUUID().toString());
+
 
         if (rezervacijaDTO.getPromoKod() != null && !rezervacijaDTO.getPromoKod().isEmpty()) {
             Rezervacija existingRezervacija = rezervacijaRepository.findByPromoKodAndAktivna(rezervacijaDTO.getPromoKod(), true);
             if (existingRezervacija != null) {
-                rezervacija.setPopust(existingRezervacija.getPopust());
+                rezervacija.setUkupnaCena(calculateDiscountedPrice(rezervacija.getSoba().getCenaPoNoci(),existingRezervacija.getPopust()));
+                existingRezervacija.setAktivna(false);
+                rezervacijaRepository.save(existingRezervacija);
+                rezervacija.setAktivna(true);
             } else {
-                throw new RuntimeException("Promo kod nije aktivan ili ne postoji.");
+                throw new BadRequestException("Promo kod nije aktivan ili ne postoji.");
             }
         } else {
             rezervacija.setPopust(0); // No discount if no promo code is provided
         }
 
-        rezervacija.setUkupnaCena(calculateDiscountedPrice(rezervacijaDTO.getUkupnaCena(), rezervacija.getPopust()));
+        if(!rezervacija.isAktivna()) {
+            rezervacija.setUkupnaCena(calculateDiscountedPrice(rezervacija.getSoba().getCenaPoNoci(),rezervacija.getPopust()));
+            rezervacija.setAktivna(true);
+        }
+
+        rezervacija.setToken(UUID.randomUUID().toString());
+        rezervacija.setPopust(generateRandomPopust());
+        rezervacija.setPromoKod(generatePromoKod());
+
+        for (Gost gost : rezervacija.getGosti()) {
+            gost.setRezervacija(rezervacija);
+        }
 
         Rezervacija savedRezervacija = rezervacijaRepository.save(rezervacija);
 
-        for (Gost gost : savedRezervacija.getGosti()) {
-            gost.setRezervacija(savedRezervacija);
-            gostRepository.save(gost);
-        }
-
         RezervacijaDTO responseDTO = modelMapper.map(savedRezervacija, RezervacijaDTO.class);
-        responseDTO.setSoba(modelMapper.map(savedRezervacija.getSoba(), SobaDTO.class));
         return responseDTO;
     }
 
-    private double calculateDiscountedPrice(double originalPrice, double discountPercentage) {
-        return originalPrice - (originalPrice * (discountPercentage / 100));
-    }
-
     @Override
+    @Transactional(readOnly = true)
     public RezervacijaDTO getReservationByEmailAndToken(String email, String token) {
         Rezervacija rezervacija = rezervacijaRepository.findByEmailAndToken(email, token)
-                .orElseThrow(() -> new RuntimeException("Rezervacija not found"));
+                .orElseThrow(() -> new NotFoundException("Rezervacija not found"));
         RezervacijaDTO rezervacijaDTO = modelMapper.map(rezervacija, RezervacijaDTO.class);
         rezervacijaDTO.setSoba(modelMapper.map(rezervacija.getSoba(), SobaDTO.class));
         rezervacijaDTO.setToken(null);
         return rezervacijaDTO;
     }
 
-
     @Override
+    @Transactional
     public void cancelReservation(Long id) {
-        Rezervacija rezervacija = rezervacijaRepository.findById(id).orElseThrow(() -> new RuntimeException("Rezervacija not found"));
+        Rezervacija rezervacija = rezervacijaRepository.findById(id).orElseThrow(() -> new NotFoundException("Rezervacija not found"));
         rezervacijaRepository.delete(rezervacija);
     }
-}
 
+
+    private double calculateDiscountedPrice(double originalPrice, double discountPercentage) {
+        return originalPrice - (originalPrice * (discountPercentage / 100));
+    }
+
+    private String generatePromoKod() {
+        String characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+        Random random = new Random();
+        StringBuilder promoKod = new StringBuilder();
+        for (int i = 0; i < 7; i++) {
+            promoKod.append(characters.charAt(random.nextInt(characters.length())));
+        }
+        return promoKod.toString();
+    }
+
+    private double generateRandomPopust() {
+        int[] possiblePopusti = {5, 10, 15, 20};
+        return possiblePopusti[new Random().nextInt(possiblePopusti.length)];
+    }
+}

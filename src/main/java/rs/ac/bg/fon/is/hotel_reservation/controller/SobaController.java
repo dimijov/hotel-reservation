@@ -1,6 +1,7 @@
 package rs.ac.bg.fon.is.hotel_reservation.controller;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import rs.ac.bg.fon.is.hotel_reservation.dto.SobaDTO;
 import rs.ac.bg.fon.is.hotel_reservation.service.SobaService;
@@ -10,6 +11,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/sobe")
+@Validated
 public class SobaController {
 
     @Autowired
