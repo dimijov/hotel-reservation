@@ -18,20 +18,18 @@ public class RezervacijaDTO {
     @NotEmpty(message = "Email je obavezan")
     private String email;
 
-    @NotNull(message = "Datum početka je obavezan")
-    @Future(message = "Datum početka mora biti u budućnosti")
+    @NotNull(message = "Datum pocetka je obavezan")
+    @Future(message = "Datum pocetka mora biti u buducnosti")
     private LocalDate datumPocetka;
 
-    @NotNull(message = "Datum završetka je obavezan")
-    @Future(message = "Datum završetka mora biti u budućnosti")
+    @NotNull(message = "Datum zavrsetka je obavezan")
+    @Future(message = "Datum zavrsetka mora biti u buducnosti")
     private LocalDate datumZavrsetka;
 
     private String promoKod;
-
+    private double popust;
     private double ukupnaCena;
     private boolean aktivna;
-
-    @JsonInclude(JsonInclude.Include.NON_NULL)
     private String token;
 
     @NotNull(message = "Gosti su obavezni")

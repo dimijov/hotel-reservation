@@ -28,7 +28,7 @@ public class SobaServiceImpl implements SobaService {
 
     @Override
     public SobaDTO getRoomById(Long id) {
-        Soba soba = sobaRepository.findById(id).orElseThrow(() -> new RuntimeException("Soba not found"));
+        Soba soba = sobaRepository.findById(id).orElseThrow(() -> new RuntimeException("Soba nije pronadjena"));
         return modelMapper.map(soba, SobaDTO.class);
     }
 }

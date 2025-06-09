@@ -16,7 +16,7 @@ public class SobaDTO {
     @NotBlank(message = "Opis je obavezan")
     private String opis;
 
-    @Min(value = 0, message = "Cena po noći mora biti pozitivna vrednost")
+    @Min(value = 0, message = "Cena po noci mora biti pozitivan broj")
     private double cenaPoNoci;
 
     @NotBlank(message = "URL slike je obavezan")
